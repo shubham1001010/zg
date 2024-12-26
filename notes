@@ -1,0 +1,87 @@
+BABYLON.SceneLoader.ImportMesh("", "/", "zombie.glb", scene, function (meshes, particleSystems, skeletons, animationGroups) {
+
+    var importedMesh = meshes[0];
+    importedMesh.rotation = new BABYLON.Vector3(0,0,0);
+    // Assuming the first mesh is the one you want
+    importedMesh.position = new BABYLON.Vector3(-10, -10, -6.5);
+    meshes[0].diffuse = new BABYLON.Vector3(1,0,0);
+    meshes.forEach(function (mesh) {
+        mesh.scaling = new BABYLON.Vector3(1.6, 1.4, 1.4);
+        mesh.checkCollisions = true;
+    });
+
+    if (animationGroups.length > 4) {
+        const animationGroup = animationGroups[4]; // Index 3 for the 4th group (0-based index)
+        animationGroup.start(true); // true to loop
+    }
+    });
+    
+    
+    
+    
+    
+    
+    BABYLON.SceneLoader.ImportMesh("", "/", "zombie.glb", scene, function (meshes, particleSystems, skeletons, animationGroups) {
+
+    var importedMesh = meshes[0];
+
+    importedMesh.checkCollisions = true;
+    importedMesh.rotation = new BABYLON.Vector3(0, 0, 0);
+    importedMesh.position = new BABYLON.Vector3(-10, -10, -6.5);
+    importedMesh.diffuse = new BABYLON.Vector3(1, 0, 0);
+    meshes.forEach(function (mesh) {
+        mesh.scaling = new BABYLON.Vector3(1.6, 1.4, 1.4);
+        mesh.checkCollisions = true;
+    });
+
+    if (animationGroups.length > 4) {
+        const animationGroup = animationGroups[4];
+        animationGroup.start(true);
+    }
+
+    var zombie = importedMesh;
+    var movementSpeed = 0.1;
+    var followRange = 15;
+    var targetDistance = 1.5;
+    var attackDistance = 2;
+
+    function updateZombieBehavior() {
+        if (!zombie) return;
+        var distance = BABYLON.Vector3.Distance(zombie.position, camera.position);
+
+        if (distance < attackDistance) {
+            if (animationGroups.length > 2) {
+                const attackAnimationGroup = animationGroups[2];
+                if (!attackAnimationGroup.isRunning) {
+                    attackAnimationGroup.start(true);
+                }
+            }
+        } else if (distance < targetDistance) {
+            if (animationGroups.length > 0) {
+                const idleAnimationGroup = animationGroups[0];
+                idleAnimationGroup.start(true);
+            }
+        } else if (distance <= followRange) {
+            var direction = camera.position.subtract(zombie.position);
+            direction.y = 0;
+            direction.normalize();
+            var rotation = Math.atan2(360 - direction.z, 360 - direction.x);
+            zombie.rotation.y = rotation + Math.PI / 2;
+            zombie.position.addInPlace(direction.scale(movementSpeed));
+            if (animationGroups.length > 3) {
+                const walkAnimationGroup = animationGroups[3];
+                if (!walkAnimationGroup.isRunning) {
+                    walkAnimationGroup.start(true);
+                }
+            }
+        } else {
+            if (animationGroups.length > 0) {
+                const idleAnimationGroup = animationGroups[0];
+                idleAnimationGroup.start(true);
+            }
+        }
+    }
+
+    setInterval(updateZombieBehavior, 30);
+})
+;

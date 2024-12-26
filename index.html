@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <title>Babylon.js sample code</title>
+
+        <!-- Babylon.js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+        <script src="https://assets.babylonjs.com/generated/Assets.js"></script>
+        <script src="https://cdn.babylonjs.com/recast.js"></script>
+        <script src="https://cdn.babylonjs.com/ammo.js"></script>
+        <script src="https://cdn.babylonjs.com/havok/HavokPhysics_umd.js"></script>
+        <script src="https://cdn.babylonjs.com/cannon.js"></script>
+        <script src="https://cdn.babylonjs.com/Oimo.js"></script>
+        <script src="https://cdn.babylonjs.com/earcut.min.js"></script>
+        <script src="https://cdn.babylonjs.com/babylon.js"></script>
+        <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+        <script src="https://cdn.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+        <script src="https://cdn.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+        <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+        <script src="https://cdn.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+        <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+        <script src="https://cdn.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+        <style>
+            html, body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+            
+            #canvasZone {
+                width: 100%;
+                height: 100%;
+            }
+        </style>
+    </head>
+<body>
+    <div id="canvasZone"><canvas id="renderCanvas"></canvas></div>
+    <script>
+        var canvas = document.getElementById("renderCanvas");
+
+        var startRenderLoop = function (engine, canvas) {
+            engine.runRenderLoop(function () {
+                if (sceneToRender && sceneToRender.activeCamera) {
+                    sceneToRender.render();
+                }
+            });
+        }
+
+        var engine = null;
+        var scene = null;
+        var sceneToRender = null;
+        var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
+        var createScene = function () {
+    var scene = new BABYLON.Scene(engine);
+
+    // Lights
+    //var light0 = new BABYLON.DirectionalLight("Omni", new BABYLON.Vector3(-2, -5, 2));
+ //  var light1 = new BABYLON.PointLight("Omni", new BABYLON.Vector3(2, -5, -2));
+    
+
+    // Need a free camera for collisions
+    var camera = new BABYLON.FreeCamera("FreeCamera", new BABYLON.Vector3(0, -8, -20));
+
+    //Ground
+    const ground = BABYLON.MeshBuilder.CreateGroundFromHeightMap("", "grass.png", {
+    width: 100, height: 100, subdivisions: 100, maxHeight: 0.3, minHeight: 0.01
+});
+    ground.material = new BABYLON.StandardMaterial("groundMat");
+    ground.material.diffuseTexture = new BABYLON.Texture("grass.png");
+    ground.material.diffuseTexture.uScale = 7; // Repeat 2 times on X-axis
+    ground.material.diffuseTexture.vScale = 7;
+    ground.material.diffuseColor = new BABYLON.Color3(1, 1, 1);
+    ground.material.backFaceCulling = false;
+    ground.position = new BABYLON.Vector3(5, -10, -15);
+    ground.rotation = new BABYLON.Vector3(0, 0, 0);
+
+    //Simple crate
+    var box = BABYLON.CreateBox("box", { size: 2 });
+    box.material = new BABYLON.StandardMaterial("Mat");
+    box.material.diffuseTexture = new BABYLON.Texture("crate.png");
+    box.material.diffuseTexture.hasAlpha = true;
+    box.position = new BABYLON.Vector3(5, -9, -10);
+
+    //Set gravity for the scene (G force like, on Y-axis)
+    scene.gravity = new BABYLON.Vector3(0, -9.81 / 60, 0);
+
+    // Enable Collisions
+    scene.collisionsEnabled = true;
+
+    //Then apply collisions and gravity to the active camera
+    camera.checkCollisions = true;
+    camera.applyGravity = true;
+
+    //Set the ellipsoid around the camera (e.g. your player's size)
+    camera.ellipsoid = new BABYLON.Vector3(1, 1, 1);
+
+    //finally, say which mesh will be collisionable
+    ground.checkCollisions = true;
+    box.checkCollisions = true;
+
+    // Add our custom Joystick+Swipe input
+    camera.inputs.clear()
+    camera.inputs.add(new FreeCameraTouchVirtualJoystickInput())
+    camera.attachControl(canvas, true);
+    camera.speed = 2
+    BABYLON.Engine.CollisionsEpsilon = 0.0001; // acts as a deadzone for joystick
+    camera.inertia = 0.8;
+    
+BABYLON.SceneLoader.ImportMesh("", "/", "tree.glb", scene, function (meshes, particleSystems, skeletons, animationGroups) {
+    var importedMesh = meshes[0];
+    importedMesh.rotation = new BABYLON.Vector3(0,0,0);
+    // Assuming the first mesh is the one you want
+    importedMesh.position = new BABYLON.Vector3(-10, -10, -6.5);
+    meshes[0].diffuse = new BABYLON.Vector3(1,0,0);
+    meshes.forEach(function(mesh) {
+      mesh.scaling = new BABYLON.Vector3(7, 5, 7);
+      mesh.checkCollisions = true;
+    });
+});
+BABYLON.SceneLoader.ImportMesh("", "/", "tree.glb", scene, function (meshes, particleSystems, skeletons, animationGroups) {
+
+    var importedMesh = meshes[0];
+
+    importedMesh.rotation = new BABYLON.Vector3(0,0,0);
+    // Assuming the first mesh is the one you want
+    importedMesh.position = new BABYLON.Vector3(-4.40, -10, -4.5);
+    meshes[0].diffuse = new BABYLON.Vector3(1,0,0);
+    meshes.forEach(function(mesh) {
+      mesh.scaling = new BABYLON.Vector3(7, 5, 7);
+      mesh.checkCollisions = true;
+    });
+});
+
+
+
+// Add a hemispheric light to the scene
+const light = new BABYLON.HemisphericLight("hemisphericLight", 
+    new BABYLON.Vector3(0, 1, 0), scene
+);
+light.intensity = 0.7;
+    
+    return scene;
+}
+
+
+class FreeCameraTouchVirtualJoystickInput extends BABYLON.BaseCameraPointersInput {
+    SWIPE_SENSIBILITY = 0.5;
+    JOYSTICK_COLOR = "LightGrey";
+    JOYSTICK_TOUCH_AREA_HORIZONTAL_SCREEN_SHARE = 0.5;
+    JOYSTICK_CIRCLE_SIZE_VERTICAL_SCREEN_SHARE = 0.1;
+    JOYSTICK_PUCK_SIZE_VERTICAL_SCREEN_SHARE = 0.05;
+    JOYSTICK_OUTER_CIRCLE_THICKNESS_RATIO = 0.01;
+    JOYSTICK_INNER_CIRCLE_THICKNESS_RATIO = 0.04;
+    JOYSTICK_PUCK_THICKNESS_RATIO = 0.03;
+
+    camera;
+    joystickDelta = BABYLON.Vector2.Zero();
+    screenSize;
+    ui;
+    joystickPointerId;
+    joystickButtonDownPos;
+    joystickButtonDownPosOffset;
+    joystickContainer;
+    joystickOuterCirce;
+    joystickInnerCircle;
+    joystickPuck;
+    joystickCircleRadius;
+    joystickPuckRadius;
+
+    getClassName = () => this.constructor.name;
+
+    getSimpleName = () => "joystick"
+
+    attachControl(noPreventDefault) {
+        super.attachControl(noPreventDefault);
+        this.screenSize = FreeCameraTouchVirtualJoystickInput.getScreenSize();
+        this.ui = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+        this.prepareImages(this.screenSize.y);
+        BABYLON.EngineStore.LastCreatedEngine.onResizeObservable.add(this.resize);
+    }
+
+    prepareImages() {
+        this.joystickCircleRadius = this.screenSize.y * this.JOYSTICK_CIRCLE_SIZE_VERTICAL_SCREEN_SHARE;
+        this.joystickPuckRadius = this.screenSize.y * this.JOYSTICK_PUCK_SIZE_VERTICAL_SCREEN_SHARE;
+
+        this.joystickContainer = new BABYLON.GUI.Container("virtual_joystick");
+        let containerSize = this.joystickCircleRadius * 2 + this.joystickPuckRadius * 2 + 1;
+        this.joystickContainer.widthInPixels = containerSize;
+        this.joystickContainer.heightInPixels = containerSize;
+        this.joystickContainer.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        this.joystickContainer.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+
+        this.joystickOuterCirce = this.prepareJoystickCircle(
+            this.joystickCircleRadius,
+            containerSize * this.JOYSTICK_OUTER_CIRCLE_THICKNESS_RATIO,
+        );
+        this.joystickInnerCircle = this.prepareJoystickCircle(
+            this.joystickPuckRadius,
+            containerSize * this.JOYSTICK_INNER_CIRCLE_THICKNESS_RATIO,
+        );
+        this.joystickPuck = this.prepareJoystickCircle(
+            this.joystickPuckRadius,
+            containerSize * this.JOYSTICK_PUCK_THICKNESS_RATIO,
+        );
+
+        this.joystickContainer.addControl(this.joystickOuterCirce);
+        this.joystickContainer.addControl(this.joystickInnerCircle);
+        this.joystickContainer.addControl(this.joystickPuck);
+        this.joystickContainer.isVisible = false;
+        this.ui.addControl(this.joystickContainer);
+    }
+
+    prepareJoystickCircle(radius, thickness) {
+        let circle = new BABYLON.GUI.Ellipse();
+        circle.widthInPixels = radius * 2;
+        circle.heightInPixels = radius * 2;
+        circle.thickness = thickness;
+        circle.color = this.JOYSTICK_COLOR;
+        circle.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        circle.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        return circle;
+    }
+
+    detachControl() {
+        this.disposeImages();
+        this.ui.dispose();
+        BABYLON.EngineStore.LastCreatedEngine.onResizeObservable.removeCallback(this.resize);
+        super.detachControl();
+    }
+
+    disposeImages() {
+        this.joystickContainer.dispose()
+        this.joystickInnerCircle.dispose();
+        this.joystickOuterCirce.dispose();
+        this.joystickPuck.dispose();
+    }
+
+    resize = () => {
+        this.screenSize = FreeCameraTouchVirtualJoystickInput.getScreenSize();
+        this.disposeImages();
+        this.prepareImages();
+    };
+
+    static getScreenSize() {
+        let engine = BABYLON.EngineStore.LastCreatedEngine;
+        return new BABYLON.Vector2(engine.getRenderWidth(), engine.getRenderHeight());
+    }
+
+    checkInputs() {
+        let joystickMoveVector = new BABYLON.Vector3(this.joystickDelta.x, 0, -this.joystickDelta.y);
+        joystickMoveVector.scaleInPlace(BABYLON.EngineStore.LastCreatedEngine.getDeltaTime() / 1000);
+        this.camera.cameraDirection.addInPlace(
+            BABYLON.Vector3.TransformCoordinates(joystickMoveVector, BABYLON.Matrix.RotationY(this.camera.rotation.y)),
+        );
+    }
+
+    onTouch(point, offsetX, offsetY) {
+        if (point.pointerId === this.joystickPointerId) {
+            // point refer to global inner window canvas, we need to convert it to local render canvas
+            this.onTouchJoystick(
+                new BABYLON.Vector2(point.x, point.y).subtractInPlace(this.joystickButtonDownPosOffset),
+            );
+        } else {
+            this.onTouchSwipe(new BABYLON.Vector2(offsetX, offsetY));
+        }
+    }
+
+    onTouchJoystick(touchPoint) {
+        const joystickVector = touchPoint.subtract(this.joystickButtonDownPos);
+        if (joystickVector.length() > this.joystickCircleRadius)
+            joystickVector.scaleInPlace(this.joystickCircleRadius / joystickVector.length());
+        this.joystickPuck.left = joystickVector.x;
+        this.joystickPuck.top = joystickVector.y;
+
+        this.joystickDelta = joystickVector.scaleInPlace(this.camera.speed / this.joystickCircleRadius);
+    }
+
+    onTouchSwipe(touchOffset) {
+        let directionAdjust = 1;
+        if (this.camera.getScene().useRightHandedSystem) directionAdjust *= -1;
+        if (this.camera.parent && this.camera.parent._getWorldMatrixDeterminant() < 0)
+            directionAdjust *= -1;
+
+        this.camera.cameraRotation.y +=
+            ((directionAdjust * touchOffset.x) / this.screenSize.x) * this.SWIPE_SENSIBILITY;
+        this.camera.cameraRotation.x += (touchOffset.y / this.screenSize.x) * this.SWIPE_SENSIBILITY;
+    }
+
+    onButtonDown(evt) {
+        if (evt.offsetX < this.screenSize.x * this.JOYSTICK_TOUCH_AREA_HORIZONTAL_SCREEN_SHARE)
+            this.onButtonDownJoystick(evt);
+    }
+
+    onButtonDownJoystick(evt) {
+        let point = new BABYLON.Vector2(evt.offsetX, evt.offsetY);
+        this.joystickPointerId = evt.pointerId;
+        this.joystickButtonDownPos = point;
+        this.joystickButtonDownPosOffset = new BABYLON.Vector2(evt.clientX - point.x, evt.clientY - point.y);
+        this.joystickContainer.left = point.x - this.joystickContainer.widthInPixels / 2;
+        this.joystickContainer.top = point.y - this.joystickContainer.heightInPixels / 2;
+        this.joystickContainer.isVisible = true;
+    }
+
+    onButtonUp(evt) {
+        if (evt.pointerId === this.joystickPointerId) this.onButtonUpJoystick();
+    }
+
+    onButtonUpJoystick() {
+        this.joystickPointerId = null;
+        this.joystickDelta.scaleInPlace(0);
+        this.joystickContainer.isVisible = false;
+    }
+}
+
+                window.initFunction = async function() {
+                    
+                    
+                    
+                    var asyncEngineCreation = async function() {
+                        try {
+                        return createDefaultEngine();
+                        } catch(e) {
+                        console.log("the available createEngine function failed. Creating the default engine instead");
+                        return createDefaultEngine();
+                        }
+                    }
+
+                    window.engine = await asyncEngineCreation();
+        if (!engine) throw 'engine should not be null.';
+        startRenderLoop(engine, canvas);
+        window.scene = createScene();};
+        initFunction().then(() => {sceneToRender = scene                    
+        });
+
+        // Resize
+        window.addEventListener("resize", function () {
+            engine.resize();
+        });
+    </script>
+</body>
+</html>
